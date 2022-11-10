@@ -1,0 +1,4 @@
+/**
+ * Goal :
+ * Raffle contract :
+ */
