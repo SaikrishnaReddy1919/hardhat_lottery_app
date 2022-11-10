@@ -14,11 +14,25 @@ pragma solidity ^0.8.7;
 
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
 
 error Raffle__NotEnoughETHEntered();
 error Raffle__TransferFailed();
+error Raffle__NotOpen();
 
-contract Raffle is VRFConsumerBaseV2 {
+contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
+    // Type declarations
+    /**
+     * RaffleState is used to decide the diff states.
+     * OPEN -> when the state is OPEN only, then others can enter into the lottery.
+     * CALCULATING -> means contract is getting random number and deciding the winner. So while doing others cant be entered into lottery. Check enterRaffle()
+     * Once the winner is decided then the state will be changed to OPEN.
+     * */
+    enum RaffleState {
+        OPEN,
+        CALCULATING
+    } // this enum inturn menas 0 = open, 1 = calculating
+
     // ----Storage Variables----
     uint256 private immutable i_entranceFee;
     address payable[] private s_players;
@@ -31,7 +45,9 @@ contract Raffle is VRFConsumerBaseV2 {
 
     // --- Lottery variables ----
     address private s_recentWinner;
-
+    RaffleState private s_raffleState;
+    uint256 private s_lastTimeStamp;
+    uint256 private immutable i_interval;
     //Events
     //best practise in naming : reverse the fucntion name
     event RaffleEnter(address indexed player);
@@ -43,19 +59,45 @@ contract Raffle is VRFConsumerBaseV2 {
         uint256 entranceFee,
         bytes32 gasLane,
         uint64 subscriptionId,
-        uint32 callBackGasLimit
+        uint32 callBackGasLimit,
+        uint256 interval
     ) VRFConsumerBaseV2(vrfCoordinatorV2) {
         i_entranceFee = entranceFee;
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
         i_gasLane = gasLane;
         i_subscriptionId = subscriptionId;
         i_callBackGasLimit = callBackGasLimit;
+        s_raffleState = RaffleState.OPEN;
+        s_lastTimeStamp = block.timestamp;
+        i_interval = interval;
+    }
+
+    /**
+     * @dev This is the function that the chainlink keeper nodes call.
+     * They look for the 'upkeepNeeded' to return true.
+     * The following should be true in order to return true.
+     * 1. Our time interval should have passed
+     * 2. The lottery should have at least 1 player, and have some ETH
+     * 3. Our subscription is funded with LINK
+     * 4. Lottery should be in an "open" state.
+     */
+
+    function checkUpKeep(
+        bytes calldata /*checkData*/
+    ) external override returs (bool upkeepNeeded, bytes memory /*perfoemData */) {
+        bool isOpen = (RaffleState.OPEN == s_raffleState);
+        bool timePassed = (block.timestamp - s_lastTimeStamp) > i_interval;
+        bool hasPlayers = (s_players.length > 0);
+        bool hasBalance = address(this).balance > 0;
+
+        upkeepNeeded = (isOpen && timePassed && hasPlayers && hasBalance);
     }
 
     function requestRandomWinner() external {
         // request the random numbet
         //once we get it, do
         //requesting random number is -> 2 txn process
+        s_raffleState = RaffleState.CALCULATING;
         uint256 requestId = i_vrfCoordinator.requestRandomWords(
             i_gasLane,
             i_subscriptionId,
@@ -74,6 +116,8 @@ contract Raffle is VRFConsumerBaseV2 {
         uint256 indexOfWinner = randomWords[0] % s_players.length;
         address payable recentWinner = s_players[indexOfWinner];
         s_recentWinner = recentWinner;
+        s_raffleState = RaffleState.OPEN;
+        s_players = new address payable[](0); // reset to new payable array once the winner is decided
         (bool success, ) = recentWinner.call{value: address(this).balance}("");
         if (!success) {
             revert Raffle__TransferFailed();
@@ -98,6 +142,9 @@ contract Raffle is VRFConsumerBaseV2 {
         //require msg.value should be > min value
         if (msg.value < i_entranceFee) {
             revert Raffle__NotEnoughETHEntered();
+        }
+        if (s_raffleState != RaffleState.OPEN) {
+            revert Raffle__NotOpen();
         }
         s_players.push(payable(msg.sender));
         //Events
