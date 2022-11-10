@@ -14,13 +14,21 @@ pragma solidity ^0.8.7;
 
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
-import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/AutomationCompatibleInterface.sol";
 
 error Raffle__NotEnoughETHEntered();
 error Raffle__TransferFailed();
 error Raffle__NotOpen();
+error Raffle__UpkeepNotNeeded(uint256 currentBalance, uint256 numPlayers, uint256 raffleState);
 
-contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
+/**
+ * @title A sample Raffle contract
+ * @author Saikrishna Reddy
+ * @notice This contract is for creating an untamperable decentralized smart contract
+ * @dev This implements chainlink VRF v2 and Chainlink Keepers
+ */
+
+contract Raffle is VRFConsumerBaseV2, AutomationCompatibleInterface {
     // Type declarations
     /**
      * RaffleState is used to decide the diff states.
@@ -48,6 +56,7 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     RaffleState private s_raffleState;
     uint256 private s_lastTimeStamp;
     uint256 private immutable i_interval;
+
     //Events
     //best practise in naming : reverse the fucntion name
     event RaffleEnter(address indexed player);
@@ -82,9 +91,16 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
      * 4. Lottery should be in an "open" state.
      */
 
-    function checkUpKeep(
-        bytes calldata /*checkData*/
-    ) external override returs (bool upkeepNeeded, bytes memory /*perfoemData */) {
+    function checkUpkeep(
+        bytes memory /*checkData*/
+    )
+        public
+        override
+        returns (
+            bool upkeepNeeded,
+            bytes memory /*perfoemData */
+        )
+    {
         bool isOpen = (RaffleState.OPEN == s_raffleState);
         bool timePassed = (block.timestamp - s_lastTimeStamp) > i_interval;
         bool hasPlayers = (s_players.length > 0);
@@ -93,10 +109,20 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         upkeepNeeded = (isOpen && timePassed && hasPlayers && hasBalance);
     }
 
-    function requestRandomWinner() external {
+    function performUpkeep(
+        bytes calldata /* performData */
+    ) external override {
         // request the random numbet
         //once we get it, do
         //requesting random number is -> 2 txn process
+        (bool upkeepNeeded, ) = checkUpkeep("");
+        if (!upkeepNeeded) {
+            revert Raffle__UpkeepNotNeeded(
+                address(this).balance,
+                s_players.length,
+                uint256(s_raffleState)
+            );
+        }
         s_raffleState = RaffleState.CALCULATING;
         uint256 requestId = i_vrfCoordinator.requestRandomWords(
             i_gasLane,
@@ -118,6 +144,7 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         s_recentWinner = recentWinner;
         s_raffleState = RaffleState.OPEN;
         s_players = new address payable[](0); // reset to new payable array once the winner is decided
+        s_lastTimeStamp = block.timestamp;
         (bool success, ) = recentWinner.call{value: address(this).balance}("");
         if (!success) {
             revert Raffle__TransferFailed();
@@ -136,6 +163,26 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
 
     function getRecentWinner() public view returns (address) {
         return s_recentWinner;
+    }
+
+    function getRaffleState() public view returns (RaffleState) {
+        return s_raffleState;
+    }
+
+    function getNumOfPlayers() public view returns (uint256) {
+        return s_players.length;
+    }
+
+    function getLatestTimeStamp() public view returns (uint256) {
+        return s_lastTimeStamp;
+    }
+
+    function getNumWords() public pure returns (uint256) {
+        return NUM_WORDS;
+    }
+
+    function getRequestConfirmations() public pure returns (uint256) {
+        return REQUEST_CONFIRMATIONS;
     }
 
     function enterRaffle() public payable {
