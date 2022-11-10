@@ -39,4 +39,12 @@ module.exports = {
             default: 1,
         },
     },
+    gasReporter: {
+        enabled: false, // if false -> dont generate report for gas
+        outputFile: "gas-report.txt",
+        noColors: true,
+        currency: "INR",
+        coinmarketcap: COINMARKETCAP_API_KEY, // -> to get prices of eth
+        token: "ETH", //-> if deployed on polygon chain
+    },
 }
