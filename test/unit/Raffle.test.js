@@ -39,5 +39,12 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                   console.log(player, deployer)
                   assert.equal(player, deployer)
               })
+
+              it("emits event an event", async function () {
+                  await expect(raffle.enterRaffle({ value: raffleEntranceFee })).to.emit(
+                      raffle, //contract
+                      "RaffleEnter" //event name
+                  )
+              })
           })
       })
