@@ -8,9 +8,9 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     const { deployer } = await getNamedAccounts()
     const chainId = network.config.chainId
 
-    let vrfCoordinatorV2MockAddress, subscriptionId
+    let vrfCoordinatorV2MockContract, vrfCoordinatorV2MockAddress, subscriptionId
     if (developmentChains.includes(network.name)) {
-        const vrfCoordinatorV2MockContract = await ethers.getContract("VRFCoordinatorV2Mock")
+        vrfCoordinatorV2MockContract = await ethers.getContract("VRFCoordinatorV2Mock")
         vrfCoordinatorV2MockAddress = vrfCoordinatorV2MockContract.address
 
         // we also need subscriptionId on local network. So we need to create new subscription and we have to fund the new subId.
@@ -45,6 +45,11 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         log: true,
         waitConfirmations: network.config.blockConfirmations || 1,
     })
+
+    if (developmentChains.includes(network.name)) {
+        await vrfCoordinatorV2MockContract.addConsumer(subscriptionId, raffleContract.address)
+        log("Consumer is added")
+    }
 
     //contract verififcation only on testnets but not localchains.
     if (!developmentChains.includes(network.name) && process.env.ETHERSCAN_API_KEY) {
