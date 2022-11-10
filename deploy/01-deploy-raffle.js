@@ -42,11 +42,9 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     const raffleContract = await deploy("Raffle", {
         from: deployer,
         args: args,
-        logs: true,
+        log: true,
         waitConfirmations: network.config.blockConfirmations || 1,
     })
-
-    console.log(developmentChains.includes(network.name), process.env.ETHERSCAN_API_KEY)
 
     //contract verififcation only on testnets but not localchains.
     if (!developmentChains.includes(network.name) && process.env.ETHERSCAN_API_KEY) {
