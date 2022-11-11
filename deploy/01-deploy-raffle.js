@@ -22,6 +22,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         //Fund the subscription
         await vrfCoordinatorV2MockContract.fundSubscription(subscriptionId, VRF_SUB_FUND_AMOUNT)
     } else {
+        console.log("testnet detected! Loading values from testnet details...")
         vrfCoordinatorV2MockAddress = networkConfig[chainId]["vrfCoordinatorV2"]
         //on testnests we dont need to create sub id programmatically-we can use the UI provided by chainlink
         subscriptionId = networkConfig[chainId]["subscriptionId"]

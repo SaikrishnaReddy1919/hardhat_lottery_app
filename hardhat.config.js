@@ -27,7 +27,8 @@ module.exports = {
             url: GOERLI_RPC_URL,
             accounts: [GOERLI_PRIVATE_KEY],
             chainId: 5,
-            blockConfirmations: 6, //
+            blockConfirmations: 6,
+            saveDeployments: true,
         },
     },
     solidity: "0.8.7",
@@ -39,6 +40,19 @@ module.exports = {
             default: 1,
         },
     },
+    etherscan: {
+        apiKey: ETHERSCAN_API_KEY,
+    },
+    solidity: {
+        compilers: [
+            {
+                version: "0.8.7",
+            },
+            {
+                version: "0.4.24",
+            },
+        ],
+    },
     gasReporter: {
         enabled: false, // if false -> dont generate report for gas
         outputFile: "gas-report.txt",
@@ -46,5 +60,8 @@ module.exports = {
         currency: "INR",
         coinmarketcap: COINMARKETCAP_API_KEY, // -> to get prices of eth
         token: "ETH", //-> if deployed on polygon chain
+    },
+    mocha: {
+        timeout: 5000000,
     },
 }
