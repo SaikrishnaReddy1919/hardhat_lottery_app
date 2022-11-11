@@ -8,6 +8,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     const { deployer } = await getNamedAccounts()
     const chainId = network.config.chainId
 
+    console.log(network)
     let vrfCoordinatorV2MockContract, vrfCoordinatorV2MockAddress, subscriptionId
     if (developmentChains.includes(network.name)) {
         vrfCoordinatorV2MockContract = await ethers.getContract("VRFCoordinatorV2Mock")
