@@ -31,9 +31,14 @@ const developmentChains = ["hardhat", "localhost"]
 const DECIMALS = 8
 const INITITAL_ANSWER = 200000000000
 
+const frontEndContractsFile = "../nextjs-lottery-dapp/constants/contractAddresses.json"
+const frontEndAbiFile = "../nextjs-lottery-dapp/constants/abi.json"
+
 module.exports = {
     networkConfig,
     developmentChains,
     DECIMALS,
     INITITAL_ANSWER,
+    frontEndContractsFile,
+    frontEndAbiFile,
 }
