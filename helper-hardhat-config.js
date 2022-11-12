@@ -8,7 +8,7 @@ const networkConfig = {
         entranceFee: ethers.utils.parseEther("0.01"),
         gasLane: "0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15",
         subscriptionId: "6346", //from : https://vrf.chain.link/
-        callBackGasLimit: "5000000",
+        callBackGasLimit: "500000",
         interval: "30", // interval in sec to pick winner
     },
     31337: {
@@ -16,7 +16,7 @@ const networkConfig = {
         name: "hardhat",
         entranceFee: ethers.utils.parseEther("0.01"),
         gasLane: "0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15", //not needed on local,
-        callBackGasLimit: "5000000",
+        callBackGasLimit: "500000",
         interval: "30",
     },
     137: {
